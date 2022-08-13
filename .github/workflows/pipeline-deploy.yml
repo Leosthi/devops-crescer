@@ -1,3 +1,4 @@
+
 name: Ambiente Desenvolvimento
 
 on:  
@@ -38,6 +39,15 @@ jobs:
       run: ./mvnw verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=lab-devops-project
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  sec-tests:
+    name: Análise de Segurança
+    needs: build
+    runs-on: ubuntu-latest    
+    
+    steps:
+    - name: Simula execução de testes de segurança
+      run: echo Testes de segurança executados com sucesso      
         
   tests:
     name: Testes automatizados
@@ -55,32 +65,93 @@ jobs:
         cache: maven
     - name: Testes Unitários
       run: mvn -B test --file pom.xml
-           
-  push-image:
-    runs-on: ubuntu-latest
+    
+  integration-tests:
+    name: Testes de Integração
+    needs: code-quality
+    runs-on: ubuntu-latest    
+    
     steps:
+    - name: Simula execução de testes integrados
+      run: echo Testes integrados executados com sucesso
+      
+  mutation-tests:
+    name: Testes de Mutação
+    needs: code-quality
+    runs-on: ubuntu-latest    
+    
+    steps:
+    - name: Simula execução de testes de mutação
+      run: echo Testes de mutação executados com sucesso      
+
+  regression-tests:
+    name: Testes de Regressão
+    needs: code-quality
+    runs-on: ubuntu-latest    
+    
+    steps:
+    - name: Simula execução de testes de regressão
+      run: echo Testes de regressão executados com sucesso      
+
+  functional-tests:
+    name: Testes Funcionais
+    needs: code-quality
+    runs-on: ubuntu-latest    
+    
+    steps:
+    - name: Simula execução de testes funcionais
+      run: echo Testes funcionais executados com sucesso         
+  
+  create-app:
+   name: Criar Web App no Heroku
+   needs: [code-quality, sec-tests, tests,  integration-tests, mutation-tests, regression-tests, functional-tests]
+   runs-on: ubuntu-latest
+   steps:
       - uses: actions/checkout@v2
       - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: "crescer-hello-world-java" #Must be unique in Heroku
-          heroku_email: "franchialan@gmail.com"
+          heroku_app_name: "teste-app-java-devops" #Must be unique in Heroku
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          useforce: true
           usedocker: true
-
-  deploy:
-    name: Publica ambiente Desenvolvimento
-    needs: push-image
+          
+  push-image:
+    name: Enviar imagem Heroku
+    needs: [create-app]
     runs-on: ubuntu-latest
-    
+  
     steps:
+    - name: Prepara ambiente Docker
+      uses: docker/setup-buildx-action@v2
+      with:
+        install: true
     - name: Login no Heroku
       uses: docker/login-action@v2
       with:
         registry: registry.heroku.com
         username: ${{ secrets.HEROKU_EMAIL }}
         password: ${{ secrets.HEROKU_API_KEY }}
-    - name: Publicação
-      run: heroku container:release -a lab-devops-project web 
-      env:
-        HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+    - name: Criação e envio da imagem
+      uses: docker/build-push-action@v3
+      with:
+        push: true
+        tags: registry.heroku.com/teste-app-java-devops/web:latest
+
+  deploy:
+      name: Publica ambiente Desenvolvimento
+      needs: push-image
+      runs-on: ubuntu-latest
+    
+      steps:
+      - name: Login no Heroku
+        uses: docker/login-action@v2
+        with:
+          registry: registry.heroku.com
+          username: ${{ secrets.HEROKU_EMAIL }}
+          password: ${{ secrets.HEROKU_API_KEY }}
+      - name: Publicação
+        run: heroku container:release -a teste-app-java-devops web 
+        env:
+         HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
+         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
