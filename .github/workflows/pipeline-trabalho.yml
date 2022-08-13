@@ -1,4 +1,3 @@
-
 name: Ambiente Desenvolvimento
 
 on:  
@@ -39,20 +38,11 @@ jobs:
       run: ./mvnw verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=lab-devops-project
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-  sec-tests:
-    name: Análise de Segurança
-    needs: build
-    runs-on: ubuntu-latest    
-    
-    steps:
-    - name: Simula execução de testes de segurança
-      run: echo Testes de segurança executados com sucesso      
         
   tests:
     name: Testes automatizados
     needs: code-quality
-    runs-on: ubuntu-latest    
+    runs-on: ubuntu-latest  
     
     steps:
     - name: Git Checkout
@@ -65,60 +55,10 @@ jobs:
         cache: maven
     - name: Testes Unitários
       run: mvn -B test --file pom.xml
-    
-  integration-tests:
-    name: Testes de Integração
-    needs: code-quality
-    runs-on: ubuntu-latest    
-    
-    steps:
-    - name: Simula execução de testes integrados
-      run: echo Testes integrados executados com sucesso
-      
-  mutation-tests:
-    name: Testes de Mutação
-    needs: code-quality
-    runs-on: ubuntu-latest    
-    
-    steps:
-    - name: Simula execução de testes de mutação
-      run: echo Testes de mutação executados com sucesso      
-
-  regression-tests:
-    name: Testes de Regressão
-    needs: code-quality
-    runs-on: ubuntu-latest    
-    
-    steps:
-    - name: Simula execução de testes de regressão
-      run: echo Testes de regressão executados com sucesso      
-
-  functional-tests:
-    name: Testes Funcionais
-    needs: code-quality
-    runs-on: ubuntu-latest    
-    
-    steps:
-    - name: Simula execução de testes funcionais
-      run: echo Testes funcionais executados com sucesso         
   
-  create-app:
-   name: Criar Web App no Heroku
-   needs: [code-quality, sec-tests, tests,  integration-tests, mutation-tests, regression-tests, functional-tests]
-   runs-on: ubuntu-latest
-   steps:
-      - uses: actions/checkout@v2
-      - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
-        with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: "teste-app-java-devops" #Must be unique in Heroku
-          heroku_email: ${{ secrets.HEROKU_EMAIL }}
-          useforce: true
-          usedocker: true
-          
   push-image:
     name: Enviar imagem Heroku
-    needs: [create-app]
+    needs: tests
     runs-on: ubuntu-latest
   
     steps:
@@ -155,3 +95,4 @@ jobs:
         env:
          HEROKU_EMAIL: ${{ secrets.HEROKU_EMAIL }}
          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+  
