@@ -76,7 +76,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: registry.heroku.com/teste-app-java-devops/web:latest
+        tags: registry.heroku.com/devops-crescer/web:latest
 
   deploy:
       name: Publica ambiente Desenvolvimento
